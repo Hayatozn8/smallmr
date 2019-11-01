@@ -1,4 +1,4 @@
-package smallMR
+package smallmr
 
 import (
 	"io"
