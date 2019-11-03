@@ -11,5 +11,29 @@
     * Mapper
         * 转化为csv格式
         * 构造key value
-
+* 创建CsvInputFormat来处理每一行的解析和切片设定
 ********************************************
+
+
+	p := "main/test.txt"
+	// fileInfo, _ := os.Stat(p)
+	// fmt.Println(fileInfo.)
+	offs := []int{0, 60, 120}
+
+	for _, off := range offs {
+		fsplit := split.NewFileSplit(p, 0, 60)
+
+		reader := recordReader.NewLineRecordReader(nil)
+		reader.Initalize(fsplit)
+	}
+
+
+aaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbb
+ccccccccccccccccccc
+ddddddddddddddddddd
+eeeeeeeeeeeeeeeeeee
+fffffffffffffffffff
+ggggggggggggggggggg
+hhhhhhhhhhhhhhhhhhh
+iiiiiiiiiiiiiiiiiii
