@@ -3,7 +3,8 @@ package recordReader
 import (
 	"math"
 	"os"
-
+	"errors"
+	"strings"
 	inputSplit "github.com/Hayatozn8/smallmr/input/split"
 	"github.com/Hayatozn8/smallmr/util"
 )
@@ -16,45 +17,78 @@ type LineRecordReader struct {
 	in                   util.LineReader
 	fileIn               *os.File
 	key                  int64
-	value                string //TODO
+	value                strings.Builder //TODO
 	maxLineLength        int32
+	err error
 	// ignore zip file TODO
 
 }
 
-func NewLineRecordReader(recordDelimiterBytes []byte) RecordReader {
-	return &LineRecordReader{
+// maxLineLength TODO
+func NewLineRecordReader(recordDelimiterBytes []byte, maxLineLength int32) RecordReader {
+	result := &LineRecordReader{
 		recordDelimiterBytes: recordDelimiterBytes,
+		maxLineLength : maxLineLength,
 	}
+
+	return result
+}
+
+func (reader *LineRecordReader) Err() error {
+	// if reader.err == io.EOF {
+	// 	return nil
+	// }
+	return reader.err
 }
 
 // implements
 func (reader *LineRecordReader) Initalize(split inputSplit.InputSplit) error {
-	fsplit, error := split.(inputSplit.FileSplit)
-	reader.start = fsplit.GetStart()
-	reader.end = start + fsplit.GetLength()
+	fsplit, ok := split.(*inputSplit.FileSplit)
+	if !ok{
+		return errors.New("LineRecordReader.Initalize: split is not a object of inputSplit.FileSplit")
+	}
 
-	//reader.in = util.NewBaseLineReader()
-	reader.fileIn, _ = os.Open(fsplit.GetPath())
+	reader.start = fsplit.GetStart()
+	reader.pos = reader.start
+	reader.end = reader.start + fsplit.GetLength()
+
+	var err error
+	reader.fileIn, reader.err= os.Open(fsplit.GetPath()) //TODO
+	if err != nil {
+		return err // listen file Open error // TODO
+	}
+	reader.fileIn.Seek(reader.start, 0)
+
+	reader.in = util.NewBaseLineReader(reader.fileIn,200, nil)
 
 	if reader.start != 0 {
-		reader.start += in.readLine(reader.value, 0, reader.maxBytesToConsume(reader.start))
+		num, err := reader.in.ReadLine(&reader.value, 0, reader.maxBytesToConsume(reader.start))
+		if err != nil {
+			return err
+		}
+		
+		reader.start += int64(num)
 	}
-	return nil //TODO
+
+	return nil
 }
 
 // implements
-func (reader *LineRecordReader) NextKeyValue() (bool, error) {
+func (reader *LineRecordReader) NextKeyValue() bool {
 	reader.key = reader.pos
 
 	var newSize int32 = 0
 
 	for reader.pos <= reader.end {
 		if reader.pos == 0 {
-			newSize = reader.skipUtfByteOrderMark()
+			newSize, reader.err = reader.skipUtfByteOrderMark()
 		} else {
-			newSize, err := reader.in.ReadLine(&reader.value, reader.maxLineLength, reader.maxBytesToConsume(reader.pos))
+			newSize, reader.err = reader.in.ReadLine(&reader.value, reader.maxLineLength, reader.maxBytesToConsume(reader.pos))
 			reader.pos += int64(newSize)
+		}
+
+		if reader.err != nil{
+			return false
 		}
 
 		// EOF:newSize==0,
@@ -64,10 +98,10 @@ func (reader *LineRecordReader) NextKeyValue() (bool, error) {
 	}
 
 	if newSize == 0 {
-		//reader.key =
-		return false, nil
+		reader.value.Reset()
+		return false
 	} else {
-		return true, nil
+		return true
 	}
 }
 
@@ -92,18 +126,23 @@ func (reader *LineRecordReader) skipUtfByteOrderMark() (int32, error) {
 		util.MinInt64(int64(reader.maxLineLength)+3, math.MaxInt64))
 
 	newSize, err := reader.in.ReadLine(&reader.value, newMaxLineLength, reader.maxBytesToConsume(reader.pos))
+	if err != nil {
+		return 0, err
+	}
+
 	reader.pos += int64(newSize)
 
-	textLength := len(reader.value)
+	textBytes := []byte(reader.value.String())
+	textLength := reader.value.Len()
 
 	// check BOM
-	if textLength > 3 && reader.value[0] == 0xEF && reader.value[1] == 0xBB && reader.value[2] == 0xBF {
+	if textLength > 3 && textBytes[0] == 0xEF && textBytes[1] == 0xBB && textBytes[2] == 0xBF {
 		textLength -= 3
 		newSize -= 3
 		if textLength > 0 {
-			reader.value = reader.value[3:]
+			reader.value.Write(textBytes[3:])
 		} else {
-			reader.value = "" //TODO
+			reader.value.Reset() //TODO
 		}
 	}
 
@@ -115,6 +154,10 @@ func (reader *LineRecordReader) maxBytesToConsume(pos int64) int32 {
 		util.MaxInt64(
 			util.MinInt64(reader.end-pos, math.MaxInt64),
 			int64(reader.maxLineLength)))
+}
+
+func (reader *LineRecordReader) Close() error {
+	return reader.fileIn.Close()
 }
 
 // func (reader *LineRecordReader) getFilePosition() (int64, error){
