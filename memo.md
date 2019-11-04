@@ -13,19 +13,54 @@
         * 构造key value
 * 创建CsvInputFormat来处理每一行的解析和切片设定
 ********************************************
+package main
+import (
+	//"log"
+	"fmt"
+	"os"
+	"strings"
+	//"reflect"
+	"github.com/Hayatozn8/smallmr/input/split"
+	"github.com/Hayatozn8/smallmr/input/recordReader"
+)
 
-
-	p := "main/test.txt"
+func main() {
+	path := `test.txt`
+	// var start int64= 20
 	// fileInfo, _ := os.Stat(p)
 	// fmt.Println(fileInfo.)
-	offs := []int{0, 60, 120}
-
+	// offs := []int64{0, 45, 75}
+	offs := []int64{0, 60, 120}
+	status := make(chan struct{}, 3)
 	for _, off := range offs {
-		fsplit := split.NewFileSplit(p, 0, 60)
+	 	go func (path string, start int64) {
+			fsplit := split.NewFileSplit(path, start, 10)
 
-		reader := recordReader.NewLineRecordReader(nil)
-		reader.Initalize(fsplit)
+			reader := recordReader.NewLineRecordReader(nil, 100)
+
+			err := reader.Initalize(fsplit)
+			if err !=nil{
+				return
+			}
+
+			for reader.NextKeyValue(){
+				ki,_ := reader.GetCuttentKey()
+				vi,_ := reader.GetCurrentValue()
+
+				// k := ki.(int64)
+				v := vi.(strings.Builder)
+				fmt.Println("start =", start, ", ",ki, ", ", v.String())
+			}
+
+			reader.Close()
+			status <- struct{}{}
+		}(path, off)
 	}
+
+	<-status
+	<-status
+	<-status
+}
 
 
 aaaaaaaaaaaaaaaaaaa
