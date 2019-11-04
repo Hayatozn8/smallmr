@@ -6,10 +6,11 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type BaseLineReader struct {
-	in         os.File
+	in         *os.File
 	bufferSize int32
 	buffer     []byte
 	// the number of bytes of real data in the buffer
@@ -21,7 +22,8 @@ type BaseLineReader struct {
 	recordDelimiterBytes []byte
 }
 
-func NewBaseLineReader(in os.File, bufferSize int32, recordDelimiterBytes []byte) LineReader {
+// TODO: set bufferSize
+func NewBaseLineReader(in *os.File, bufferSize int32, recordDelimiterBytes []byte) LineReader {
 	blr := &BaseLineReader{
 		in:         in,
 		bufferSize: bufferSize,
@@ -46,7 +48,7 @@ func (blr *BaseLineReader) fillBuffer() (int32, error) {
 }
 
 // from org.apache.hadoop.util.LineReader
-func (blr *BaseLineReader) ReadLine(str *string, maxLineLength int32, maxBytesToConsume int32) (int32, error) {
+func (blr *BaseLineReader) ReadLine(str *strings.Builder, maxLineLength int32, maxBytesToConsume int32) (int32, error) {
 	if blr.recordDelimiterBytes == nil {
 		return blr.readDefaultLine(str, maxLineLength, maxBytesToConsume)
 	} else {
@@ -55,11 +57,12 @@ func (blr *BaseLineReader) ReadLine(str *string, maxLineLength int32, maxBytesTo
 }
 
 /*
- * Read a line terminated by one of CR, LF, or CRLF.
- * from org.apache.hadoop.util.LineReader
+	Read a line terminated by one of CR, LF, or CRLF.
+	from org.apache.hadoop.util.LineReader
+	not have EOF
  */
-func (blr *BaseLineReader) readDefaultLine(str *string, maxLineLength int32, maxBytesToConsume int32) (int32, error) {
-	*str = ""
+func (blr *BaseLineReader) readDefaultLine(str *strings.Builder, maxLineLength int32, maxBytesToConsume int32) (int32, error) {
+	str.Reset()
 	var txtLength int32 = 0     //tracks str.getLength(), as an optimization
 	var newlineLength int32 = 0 //length of terminating newline
 	var readLength int32 = 0
@@ -119,12 +122,13 @@ func (blr *BaseLineReader) readDefaultLine(str *string, maxLineLength int32, max
 		bytesConsumed += int64(readLength)
 		appendLength = readLength - newlineLength // delete delimiter from str
 
-		if appendLength > maxLineLength-txtLength {
+		// match start = 0
+		if appendLength > maxLineLength - txtLength {
 			appendLength = maxLineLength - txtLength
 		}
 
 		if appendLength > 0 {
-			*str += string(blr.buffer[startPosn : startPosn+appendLength])
+			str.Write(blr.buffer[startPosn : startPosn+appendLength])
 			txtLength += appendLength
 		}
 
@@ -140,6 +144,6 @@ func (blr *BaseLineReader) readDefaultLine(str *string, maxLineLength int32, max
 	return int32(bytesConsumed), nil
 }
 
-func (blr *BaseLineReader) readCustomLine(str *string, maxLineLength int32, maxBytesToConsume int32) (int32, error) {
+func (blr *BaseLineReader) readCustomLine(str *strings.Builder, maxLineLength int32, maxBytesToConsume int32) (int32, error) {
 	return 0, nil //TODO
 }
