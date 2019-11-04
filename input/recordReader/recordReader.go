@@ -6,7 +6,9 @@ import (
 
 type RecordReader interface {
 	Initalize(split inputSplit.InputSplit) error
-	NextKeyValue() (bool, error)
+	NextKeyValue() bool
 	GetCuttentKey() (interface{}, error)
 	GetCurrentValue() (interface{}, error)
+	Err() error
+	Close() error
 }
