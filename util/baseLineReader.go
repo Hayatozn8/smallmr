@@ -60,7 +60,7 @@ func (blr *BaseLineReader) ReadLine(str *strings.Builder, maxLineLength int32, m
 	Read a line terminated by one of CR, LF, or CRLF.
 	from org.apache.hadoop.util.LineReader
 	not have EOF
- */
+*/
 func (blr *BaseLineReader) readDefaultLine(str *strings.Builder, maxLineLength int32, maxBytesToConsume int32) (int32, error) {
 	str.Reset()
 	var txtLength int32 = 0     //tracks str.getLength(), as an optimization
@@ -123,7 +123,7 @@ func (blr *BaseLineReader) readDefaultLine(str *strings.Builder, maxLineLength i
 		appendLength = readLength - newlineLength // delete delimiter from str
 
 		// match start = 0
-		if appendLength > maxLineLength - txtLength {
+		if appendLength > maxLineLength-txtLength {
 			appendLength = maxLineLength - txtLength
 		}
 

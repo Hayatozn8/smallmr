@@ -1,10 +1,11 @@
 package recordReader
 
 import (
+	"errors"
 	"math"
 	"os"
-	"errors"
 	"strings"
+
 	inputSplit "github.com/Hayatozn8/smallmr/input/split"
 	"github.com/Hayatozn8/smallmr/util"
 )
@@ -19,16 +20,16 @@ type LineRecordReader struct {
 	key                  int64
 	value                strings.Builder //TODO
 	maxLineLength        int32
-	err error
+	err                  error
 	// ignore zip file TODO
 
 }
 
 // maxLineLength TODO
-func NewLineRecordReader(recordDelimiterBytes []byte, maxLineLength int32) RecordReader {
+func NewLineRecordReader(recordDelimiterBytes []byte) RecordReader {
 	result := &LineRecordReader{
 		recordDelimiterBytes: recordDelimiterBytes,
-		maxLineLength : maxLineLength,
+		maxLineLength:        maxLineLength,
 	}
 
 	return result
@@ -43,8 +44,10 @@ func (reader *LineRecordReader) Err() error {
 
 // implements
 func (reader *LineRecordReader) Initalize(split inputSplit.InputSplit) error {
+	, maxLineLength int32
+	
 	fsplit, ok := split.(*inputSplit.FileSplit)
-	if !ok{
+	if !ok {
 		return errors.New("LineRecordReader.Initalize: split is not a object of inputSplit.FileSplit")
 	}
 
@@ -53,20 +56,20 @@ func (reader *LineRecordReader) Initalize(split inputSplit.InputSplit) error {
 	reader.end = reader.start + fsplit.GetLength()
 
 	var err error
-	reader.fileIn, reader.err= os.Open(fsplit.GetPath()) //TODO
+	reader.fileIn, reader.err = os.Open(fsplit.GetPath()) //TODO
 	if err != nil {
 		return err // listen file Open error // TODO
 	}
 	reader.fileIn.Seek(reader.start, 0)
 
-	reader.in = util.NewBaseLineReader(reader.fileIn,200, nil)
+	reader.in = util.NewBaseLineReader(reader.fileIn, 200, nil)
 
 	if reader.start != 0 {
 		num, err := reader.in.ReadLine(&reader.value, 0, reader.maxBytesToConsume(reader.start))
 		if err != nil {
 			return err
 		}
-		
+
 		reader.start += int64(num)
 	}
 
@@ -87,7 +90,7 @@ func (reader *LineRecordReader) NextKeyValue() bool {
 			reader.pos += int64(newSize)
 		}
 
-		if reader.err != nil{
+		if reader.err != nil {
 			return false
 		}
 

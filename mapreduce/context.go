@@ -2,14 +2,22 @@ package mapreduce
 
 import (
 	//"github.com/Hayatozn8/smallmr/input/inputformat"
+	"github.com/Hayatozn8/smallmr/config"
 	"github.com/Hayatozn8/smallmr/input/split"
 )
 
+/*
+ submit check
+ paths
+*/
 type JobContext interface {
 	GetNumReduceTasks() int
 	GetInputFormatClass() (InputFormat, error)
 	GetMapperClass() (Mapper, error)
 	GetReducerClass() (Reduce, error)
+	SetInputPaths(paths ...string)
+	GetInputPaths() []string
+	GetConfiguration() *config.Configuration
 }
 
 type TaskContext interface {
