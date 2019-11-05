@@ -12,7 +12,7 @@ import (
 type JobContext interface {
 	GetNumReduceTasks() int
 	GetInputFormatClass() (InputFormat, error)
-	SetInputFormatClass(InputFormat)
+	SetInputFormatClass(format InputFormat)
 	GetMapperClass() (Mapper, error)
 	GetReducerClass() (Reduce, error)
 	SetInputPaths(paths ...string)

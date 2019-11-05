@@ -21,10 +21,6 @@ type FileInputFormat struct {
 	//TODO
 }
 
-func NewFileInputFormat() InputFormat{
-	return &FileInputFormat{}
-}
-
 // implements
 // not have PathFilter
 func (fif *FileInputFormat) GetSplits(job JobContext) ([]intpuSplit.InputSplit, error) {
