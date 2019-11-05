@@ -2,7 +2,6 @@ package mapreduce
 
 import (
 	inputSplit "github.com/Hayatozn8/smallmr/split"
-
 )
 
 type RecordReader interface {
