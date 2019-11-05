@@ -4,12 +4,9 @@ package mapreduce
 
 import (
 	"os"
-
+	//"fmt"
 	"github.com/Hayatozn8/smallmr/config"
-	"github.com/Hayatozn8/smallmr/input/recordReader"
-	"github.com/Hayatozn8/smallmr/input/split"
-	intpuSplit "github.com/Hayatozn8/smallmr/input/split"
-	"github.com/Hayatozn8/smallmr/mapreduce"
+	intpuSplit "github.com/Hayatozn8/smallmr/split"
 	"github.com/Hayatozn8/smallmr/util"
 )
 
@@ -24,14 +21,18 @@ type FileInputFormat struct {
 	//TODO
 }
 
+func NewFileInputFormat() InputFormat{
+	return &FileInputFormat{}
+}
+
 // implements
 // not have PathFilter
-func (fif *FileInputFormat) GetSplits(job mapreduce.JobContext) ([]intpuSplit.InputSplit, error) {
+func (fif *FileInputFormat) GetSplits(job JobContext) ([]intpuSplit.InputSplit, error) {
 	paths := job.GetInputPaths()
 	minSize := util.MaxInt64(formatMinSplitSize, fif.getMinSplitSize(job))
 	maxSize := fif.getMaxSplitSize(job)
 
-	var splits = make([]intpuSplit.InputSplit, default_split_count)
+	var splits = make([]intpuSplit.InputSplit, 0, default_split_count)
 	for _, path := range paths {
 		fileInfo, err := os.Stat(path)
 		if err != nil {
@@ -43,22 +44,26 @@ func (fif *FileInputFormat) GetSplits(job mapreduce.JobContext) ([]intpuSplit.In
 			if fif.isSplitable(path) {
 				//long blockSize = file.getBlockSize();
 				splitSize := fif.computeSplitSize(util.BlockSize, minSize, maxSize)
+				// fmt.Println(splitSize)
 
+				// how to compute :
 				// bytesRemaining = fileLength - n * splitSize
 				// start = fileLength - bytesRemaining = n * splitSize
 				// readLength = splitSize or = fileLength%splitSize
 				bytesRemaining := fileLength
-				for float64(bytesRemaining/splitSize) > split_slop {
-					splits = append(splits, split.NewFileSplit(path, fileLength-bytesRemaining, splitSize))
+
+				splitSizeFloat := float64(splitSize)
+				for float64(bytesRemaining)/splitSizeFloat > split_slop {
+					splits = append(splits, intpuSplit.NewFileSplit(path, fileLength-bytesRemaining, splitSize))
 					bytesRemaining -= splitSize
 				}
 
 				if bytesRemaining != 0 {
-					splits = append(splits, split.NewFileSplit(path, fileLength-bytesRemaining, bytesRemaining))
+					splits = append(splits, intpuSplit.NewFileSplit(path, fileLength-bytesRemaining, bytesRemaining))
 				}
 			} else {
 				// TODO splits.append
-				splits = append(splits, split.NewFileSplit(path, 0, fileLength))
+				splits = append(splits, intpuSplit.NewFileSplit(path, 0, fileLength))
 			}
 		}
 		// TODO: create empty array for zroe length files
@@ -70,20 +75,25 @@ func (fif *FileInputFormat) GetSplits(job mapreduce.JobContext) ([]intpuSplit.In
 }
 
 // implements
-func (fif *FileInputFormat) createRecordReader(split intpuSplit.InputSplit, context mapreduce.TaskContext) recordReader.RecordReader {
-	return recordReader.NewLineRecordReader(, )
+func (fif *FileInputFormat) CreateRecordReader(split intpuSplit.InputSplit, context TaskContext) RecordReader {
+	delimiter := context.GetConfiguration().GetString(config.FILE_DELIMITER)
+	if delimiter != "" {
+		return NewLineRecordReader([]byte(delimiter))
+	} else {
+		return NewLineRecordReader(nil)
+	}
 }
 
-func (fif *FileInputFormat) getMaxSplitSize(context mapreduce.JobContext) int64 {
+func (fif *FileInputFormat) getMaxSplitSize(context JobContext) int64 {
 	return context.GetConfiguration().GetInt64(config.SPLIT_MAXSIZE)
 }
 
-func (fif *FileInputFormat) getMinSplitSize(context mapreduce.JobContext) int64 {
+func (fif *FileInputFormat) getMinSplitSize(context JobContext) int64 {
 	return context.GetConfiguration().GetInt64(config.SPLIT_MINSIZE)
 }
 
 func (fif *FileInputFormat) isSplitable(path string) bool {
-	return false
+	return true
 }
 
 func (fif *FileInputFormat) computeSplitSize(blockSize int64, minSize int64, maxSize int64) int64 {
