@@ -1,4 +1,4 @@
-package recordReader
+package mapreduce
 
 import (
 	"errors"
@@ -6,8 +6,9 @@ import (
 	"os"
 	"strings"
 
-	inputSplit "github.com/Hayatozn8/smallmr/input/split"
+	inputSplit "github.com/Hayatozn8/smallmr/split"
 	"github.com/Hayatozn8/smallmr/util"
+	"github.com/Hayatozn8/smallmr/config"
 )
 
 type LineRecordReader struct {
@@ -29,7 +30,6 @@ type LineRecordReader struct {
 func NewLineRecordReader(recordDelimiterBytes []byte) RecordReader {
 	result := &LineRecordReader{
 		recordDelimiterBytes: recordDelimiterBytes,
-		maxLineLength:        maxLineLength,
 	}
 
 	return result
@@ -43,8 +43,8 @@ func (reader *LineRecordReader) Err() error {
 }
 
 // implements
-func (reader *LineRecordReader) Initalize(split inputSplit.InputSplit) error {
-	, maxLineLength int32
+func (reader *LineRecordReader) Initialize(split inputSplit.InputSplit, context TaskContext) error {
+	reader.maxLineLength = context.GetConfiguration().GetInt32(config.MAX_LINE_LENGTH)
 	
 	fsplit, ok := split.(*inputSplit.FileSplit)
 	if !ok {
