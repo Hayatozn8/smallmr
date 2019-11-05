@@ -1,12 +1,12 @@
-package recordReader
+package mapreduce
 
 import (
-	inputSplit "github.com/Hayatozn8/smallmr/input/split"
-	"github.com/Hayatozn8/smallmr/mapreduce"
+	inputSplit "github.com/Hayatozn8/smallmr/split"
+
 )
 
 type RecordReader interface {
-	Initalize(split inputSplit.InputSplit, context mapreduce.TaskContext) error
+	Initialize(split inputSplit.InputSplit, context TaskContext) error
 	NextKeyValue() bool
 	GetCuttentKey() (interface{}, error)
 	GetCurrentValue() (interface{}, error)
