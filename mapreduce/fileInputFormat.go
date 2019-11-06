@@ -4,6 +4,8 @@ package mapreduce
 
 import (
 	"os"
+	"strings"
+	"errors"
 	//"fmt"
 	"github.com/Hayatozn8/smallmr/config"
 	intpuSplit "github.com/Hayatozn8/smallmr/split"
@@ -23,10 +25,10 @@ type FileInputFormat struct {
 
 // implements
 // not have PathFilter
-func (fif *FileInputFormat) GetSplits(job JobContext) ([]intpuSplit.InputSplit, error) {
-	paths := job.GetInputPaths()
-	minSize := util.MaxInt64(formatMinSplitSize, fif.getMinSplitSize(job))
-	maxSize := fif.getMaxSplitSize(job)
+func (this *FileInputFormat) GetSplits(job JobContext) ([]intpuSplit.InputSplit, error) {
+	paths := this.listStatus(job)
+	minSize := util.MaxInt64(formatMinSplitSize, this.getMinSplitSize(job))
+	maxSize := this.getMaxSplitSize(job)
 
 	var splits = make([]intpuSplit.InputSplit, 0, default_split_count)
 	for _, path := range paths {
@@ -37,9 +39,9 @@ func (fif *FileInputFormat) GetSplits(job JobContext) ([]intpuSplit.InputSplit, 
 
 		fileLength := fileInfo.Size()
 		if fileLength != 0 {
-			if fif.isSplitable(path) {
+			if this.isSplitable(path) {
 				//long blockSize = file.getBlockSize();
-				splitSize := fif.computeSplitSize(util.BlockSize, minSize, maxSize)
+				splitSize := this.computeSplitSize(util.BlockSize, minSize, maxSize)
 				// fmt.Println(splitSize)
 
 				// how to compute :
@@ -71,7 +73,7 @@ func (fif *FileInputFormat) GetSplits(job JobContext) ([]intpuSplit.InputSplit, 
 }
 
 // implements
-func (fif *FileInputFormat) CreateRecordReader(split intpuSplit.InputSplit, context TaskContext) RecordReader {
+func (this *FileInputFormat) CreateRecordReader(split intpuSplit.InputSplit, context TaskContext) RecordReader {
 	delimiter := context.GetConfiguration().GetString(config.FILE_DELIMITER)
 	if delimiter != "" {
 		return NewLineRecordReader([]byte(delimiter))
@@ -80,18 +82,28 @@ func (fif *FileInputFormat) CreateRecordReader(split intpuSplit.InputSplit, cont
 	}
 }
 
-func (fif *FileInputFormat) getMaxSplitSize(context JobContext) int64 {
+func (this *FileInputFormat) listStatus (job JobContext) []string{
+	// TODO: filter of dir and file
+	pathsStr := job.GetConfiguration().GetString(config.INPUT_PATHS)
+	if pathsStr == "" {
+		panic(errors.New("Input path is null!"))
+	}
+
+	return strings.Split(pathsStr, config.INPUT_PATHS_JOIN_SEP)
+}
+
+func (this *FileInputFormat) getMaxSplitSize(context JobContext) int64 {
 	return context.GetConfiguration().GetInt64(config.SPLIT_MAXSIZE)
 }
 
-func (fif *FileInputFormat) getMinSplitSize(context JobContext) int64 {
+func (this *FileInputFormat) getMinSplitSize(context JobContext) int64 {
 	return context.GetConfiguration().GetInt64(config.SPLIT_MINSIZE)
 }
 
-func (fif *FileInputFormat) isSplitable(path string) bool {
+func (this *FileInputFormat) isSplitable(path string) bool {
 	return true
 }
 
-func (fif *FileInputFormat) computeSplitSize(blockSize int64, minSize int64, maxSize int64) int64 {
+func (this *FileInputFormat) computeSplitSize(blockSize int64, minSize int64, maxSize int64) int64 {
 	return util.MaxInt64(minSize, util.MinInt64(blockSize, maxSize))
 }
