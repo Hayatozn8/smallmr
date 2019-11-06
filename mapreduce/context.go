@@ -1,6 +1,7 @@
 package mapreduce
 
 import (
+	"reflect"
 	"github.com/Hayatozn8/smallmr/config"
 	"github.com/Hayatozn8/smallmr/split"
 )
@@ -11,14 +12,19 @@ import (
 */
 type JobContext interface {
 	GetNumReduceTasks() int
+	
+	// SetInputPaths(paths ...string)
+	// GetInputPaths() []string //TODO
 	GetInputFormatClass() (InputFormat, error)
-	SetInputFormatClass(format InputFormat)
-	GetMapperClass() (Mapper, error)
-	GetReducerClass() (Reduce, error)
-	SetInputPaths(paths ...string)
-	GetInputPaths() []string
+	// SetInputFormatClass(format InputFormat)
+
+	GetMapperClass() (reflect.Type, error)
+	// SetMapperClass(nilMapObj Mapper)
+
+	GetReducerClass() (reflect.Type, error)
+	
 	GetConfiguration() *config.Configuration
-	Submit() error
+	// Submit() error
 }
 
 type TaskContext interface {
