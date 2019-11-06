@@ -8,4 +8,6 @@ const (
 	STORAGE_UNIT_1KB = 1024
 	STORAGE_UNIT_1MB = 1048576
 	BlockSize           int64 = 33554432 // 32M //268435456
+	TASK_TYPE_MAP = "map"
+	TASK_TYPE_REDUCE = "reduce"
 )
